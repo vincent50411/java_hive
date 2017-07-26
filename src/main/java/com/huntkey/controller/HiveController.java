@@ -1,5 +1,7 @@
 package com.huntkey.controller;
 
+import org.json.JSONObject;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -14,9 +16,9 @@ public class HiveController
 {
     //连接hive的URL hive1.2.1版本需要的是jdbc:hive2，而不是 jdbc:hive
     private static final String URLHIVE = "jdbc:hive2://192.168.13.32:10000/default";
-    private static Connection connection = null;
+    private Connection connection = null;
 
-    public static Connection getHiveConnection() {
+    public Connection getHiveConnection() {
         if (null == connection) {
             synchronized (HiveController.class) {
                 if (null == connection) {
@@ -35,6 +37,25 @@ public class HiveController
             }
         }
         return connection;
+    }
+
+    @RequestMapping("/key/{keyValue}")
+    public String queryByKey(@PathVariable("keyValue") String keyValue)
+    {
+        JSONObject obj = null;
+        try
+        {
+            getHiveConnection();
+
+            String sql = "select * from hive_t_hk_dept where key = '" + keyValue + "'";
+
+            obj = query(sql);
+        } catch (SQLException e)
+        {
+            e.printStackTrace();
+        }
+
+        return obj.toString();
     }
 
     @RequestMapping("/test")
@@ -72,7 +93,7 @@ public class HiveController
         return "dsfsdf";
     }
 
-    private static void selectData(Statement stmt, String tableName)
+    private void selectData(Statement stmt, String tableName)
             throws SQLException {
         String sql = "select * from " + tableName;
         System.out.println("Running:" + sql);
@@ -82,6 +103,27 @@ public class HiveController
         {
             System.out.println(res.getString(1) + "\t" + res.getString(2));
         }
+    }
+
+
+
+    private JSONObject query(String sql) throws SQLException
+    {
+        JSONObject obj = new JSONObject();
+
+        Statement stmt = connection.createStatement();
+
+        ResultSet res = stmt.executeQuery(sql);
+        System.out.println("执行 select * query 运行结果:");
+
+        while (res.next())
+        {
+            obj.put("key", res.getString("key"));
+
+            obj.put("dept_code_0", res.getString("dept_code_0"));
+        }
+
+        return obj;
     }
 
 
